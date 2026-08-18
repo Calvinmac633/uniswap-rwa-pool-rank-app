@@ -1,0 +1,28 @@
+{
+  "name": "uniswap-rwa-pool-rank-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "discover-tokens": "tsx scripts/discover-rwa-tokens.ts",
+    "test": "tsx --test src/lib/math/*.test.ts"
+  },
+  "dependencies": {
+    "next": "^16.3.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "viem": "^2.55.18",
+    "@uniswap/sdk-core": "^7.19.1",
+    "@uniswap/v3-sdk": "^3.31.2",
+    "@uniswap/v4-sdk": "^2.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tsx": "^4.19.2"
+  }
+}

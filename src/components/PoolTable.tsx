@@ -4,6 +4,7 @@ import { WINDOW_KEYS, type PoolRow, type WindowApr, type WindowKey } from "@/lib
 import type { RowComputation } from "@/lib/clientCompute";
 import { Sparkline } from "./Sparkline";
 import { HookBadges } from "./HookBadges";
+import { CopyableAddress } from "./CopyableAddress";
 
 const SPARKLINE_WINDOWS: WindowKey[] = [...WINDOW_KEYS].reverse(); // long -> short, per Step 6c
 
@@ -104,12 +105,12 @@ export function PoolTable({ rows, slowDataLoadedFor }: PoolTableProps) {
                     <a className="explorer-link asset-symbol" href={explorerAddressUrl(identity.rwaToken.address)} target="_blank" rel="noopener noreferrer">
                       {identity.rwaToken.symbol}
                     </a>
-                    <span className="asset-name">{identity.rwaToken.name}</span>
                     {identity.rwaToken.warning && (
                       <span className="warnings-icon" title={identity.rwaToken.warning}>
-                        ⚠ classification warning
+                        ⚠
                       </span>
                     )}
+                    <CopyableAddress value={identity.address} />
                   </div>
                 </td>
                 <td>{identity.counterToken.symbol}</td>

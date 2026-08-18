@@ -4,6 +4,7 @@
 // metrics for pools we already know about via /pools/multi/ (30 per call) plus
 // multicalled tick state (viem RPC, unrelated to GeckoTerminal's rate limit) —
 // both fast enough to run on every page load / manual refresh.
+import { USDG } from "../chain/addresses";
 import { decodeHookPermissions, type HookBadge } from "../chain/hooks";
 import { discoverUniswapPools, type DiscoveredPool } from "../gecko/discovery";
 import { fetchPoolMetrics } from "../gecko/multi";
@@ -52,12 +53,20 @@ function toCounterTokenInfo(token: ClassifiedToken): CounterTokenInfo {
   return { address: token.address, symbol: token.symbol, decimals: token.decimals };
 }
 
+const USDG_LOWER = USDG.toLowerCase();
+
 /**
  * Picks which side of the pool is "the RWA asset" vs "the counter-asset", and
  * records whether that was GeckoTerminal's "base" or "quote" side — needed to
  * correctly map base_token_price_usd/quote_token_price_usd onto rwa/counter
  * later, since GeckoTerminal's base/quote is a display convention independent
  * of the pool's actual on-chain token0/token1 order.
+ *
+ * A pool only qualifies if the counter-asset is USDG or another RWA token
+ * (stock/stock pools stay in) — WETH and any other non-RWA token as the
+ * counter-asset are excluded here, at the earliest possible point, so they
+ * never reach the metrics/tick-state/hook/candle fetching downstream (all of
+ * which operate on whatever this function lets through).
  */
 function resolveSides(
   pool: DiscoveredPool,
@@ -67,11 +76,29 @@ function resolveSides(
   const quote = tokens.get(pool.quoteTokenAddress);
   if (!base || !quote) return null;
 
-  if (base.isRwa) return { rwa: base, counter: quote, baseIsRwa: true };
-  // Covers both "only quote is RWA" and the rare stock/stock case, which falls
-  // through to base-as-asset above instead (an arbitrary but consistent pick).
-  if (quote.isRwa) return { rwa: quote, counter: base, baseIsRwa: false };
-  return null;
+  let rwa: ClassifiedToken;
+  let counter: ClassifiedToken;
+  let baseIsRwa: boolean;
+
+  if (base.isRwa) {
+    rwa = base;
+    counter = quote;
+    baseIsRwa = true;
+  } else if (quote.isRwa) {
+    // Covers both "only quote is RWA" and the rare stock/stock case, which
+    // falls through to base-as-asset above instead (an arbitrary but
+    // consistent pick).
+    rwa = quote;
+    counter = base;
+    baseIsRwa = false;
+  } else {
+    return null; // neither side is RWA at all
+  }
+
+  const counterIsAllowed = counter.isRwa || counter.address === USDG_LOWER;
+  if (!counterIsAllowed) return null;
+
+  return { rwa, counter, baseIsRwa };
 }
 
 async function runDiscovery(): Promise<DiscoveryCache> {

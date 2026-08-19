@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "discover-tokens": "tsx scripts/discover-rwa-tokens.ts",
-    "test": "tsx --test src/lib/math/*.test.ts"
+    "test": "tsx --test src/lib/math/*.test.ts src/lib/*.test.ts"
   },
   "dependencies": {
     "next": "^16.3.1",

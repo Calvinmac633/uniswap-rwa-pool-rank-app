@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controls } from "@/components/Controls";
 import { Disclosure } from "@/components/Disclosure";
+import { FilterPanel } from "@/components/FilterPanel";
 import { PoolTable, compareRows, DEFAULT_SORT, type DisplayRow, type SortColumn } from "@/components/PoolTable";
 import { computeRowMetrics } from "@/lib/clientCompute";
+import { DEFAULT_FILTERS, hasActiveFilters, matchesFilters, type Filters } from "@/lib/filters";
 import { deserializePoolRow, type WirePoolRow } from "@/lib/wireTypes";
 import type { DiscoveryMeta, PoolRow, SlowMetrics } from "@/lib/types";
 
@@ -46,8 +48,9 @@ export default function Home() {
 
   const [depositUsd, setDepositUsd] = useState(10_000);
   const [rangeWidthPercent, setRangeWidthPercent] = useState(5);
-  const [momentumFloor, setMomentumFloor] = useState(0.5);
   const [sort, setSort] = useState(DEFAULT_SORT);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Click cycles: descending -> ascending -> back to the default sort.
   const handleSort = useCallback((column: SortColumn) => {
@@ -124,20 +127,16 @@ export default function Home() {
 
   const slowDataLoadedFor = useMemo(() => new Set(Object.keys(slowMetrics)), [slowMetrics]);
 
-  // Default sort: 24h APR descending, with the momentum filter applied — see
-  // Step 6c: raw 24h APR alone systematically surfaces one-off spikes. Any
-  // column can be clicked to sort by instead (see PoolTable's compareRows).
+  // Default sort: 24h APR descending, with the default momentum floor applied
+  // as part of `filters` — see Step 6c: raw 24h APR alone systematically
+  // surfaces one-off spikes. Any column can be clicked to sort by instead
+  // (see PoolTable's compareRows).
   const visibleRows = useMemo(() => {
-    const filtered = displayRows.filter((d) => {
-      if (!slowDataLoadedFor.has(d.row.identity.address)) return true; // don't hide rows still loading
-      if (d.computed.momentum === null) return true; // n/a momentum isn't evidence of a bad pool
-      if (!Number.isFinite(momentumFloor)) return true; // cleared/invalid input -> no floor, not "hide everything"
-      return d.computed.momentum >= momentumFloor;
-    });
+    const filtered = displayRows.filter((d) => matchesFilters(d, filters, slowDataLoadedFor.has(d.row.identity.address)));
     return filtered.sort((a, b) => compareRows(a, b, sort.column, sort.direction));
-  }, [displayRows, momentumFloor, slowDataLoadedFor, sort]);
+  }, [displayRows, filters, slowDataLoadedFor, sort]);
 
-  const hiddenByMomentumCount = displayRows.length - visibleRows.length;
+  const hiddenByFilterCount = displayRows.length - visibleRows.length;
   const remainingForTrendData = rows.length - slowDataLoadedFor.size;
 
   return (
@@ -150,7 +149,7 @@ export default function Home() {
         concentrated LP position. Read-only — no wallet connection, no transactions.
       </p>
 
-      <Disclosure />
+      {/* <Disclosure /> */}
 
       {loadError && <div className="banner banner-error">Failed to load pool data: {loadError}</div>}
       {meta?.registryError && (
@@ -178,9 +177,9 @@ export default function Home() {
           — this is rate-limited by GeckoTerminal's free tier, so it takes a bit.
         </div>
       )}
-      {hiddenByMomentumCount > 0 && (
+      {hiddenByFilterCount > 0 && (
         <div className="banner banner-info">
-          {hiddenByMomentumCount} pool{hiddenByMomentumCount === 1 ? "" : "s"} hidden by the momentum floor ({momentumFloor}×).
+          {hiddenByFilterCount} pool{hiddenByFilterCount === 1 ? "" : "s"} hidden by the active filters.
         </div>
       )}
 
@@ -189,13 +188,16 @@ export default function Home() {
         onDepositUsdChange={setDepositUsd}
         rangeWidthPercent={rangeWidthPercent}
         onRangeWidthPercentChange={setRangeWidthPercent}
-        momentumFloor={momentumFloor}
-        onMomentumFloorChange={setMomentumFloor}
+        filtersOpen={filtersOpen}
+        onToggleFilters={() => setFiltersOpen((v) => !v)}
+        filtersActive={hasActiveFilters(filters)}
         onRefresh={() => void loadFast({ refresh: true })}
         onRescan={() => void loadFast({ rescan: true })}
         refreshing={refreshing}
         lastUpdated={rows[0]?.fast?.lastUpdated ?? null}
       />
+
+      {filtersOpen && <FilterPanel filters={filters} onChange={setFilters} />}
 
       {loading ? (
         <div className="empty-state">Loading pools…</div>

@@ -168,6 +168,105 @@ button.primary:hover:not(:disabled) {
   align-self: center;
 }
 
+/* ---- Filter panel ---- */
+.filter-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 18px;
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.filter-search,
+.filter-select {
+  background: #000000;
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  min-width: 150px;
+}
+.filter-search:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.filter-chips {
+  display: flex;
+  gap: 6px;
+}
+.filter-chip {
+  background: #000000;
+  border: 1px solid var(--panel-border);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.filter-chip:hover {
+  border-color: #3a3a3c;
+  color: var(--text);
+}
+.filter-chip.active {
+  background: rgba(0, 200, 5, 0.14);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-minmax {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.filter-minmax input {
+  background: #000000;
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 8px;
+  width: 78px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.filter-minmax input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.filter-minmax-sep {
+  color: var(--text-faint);
+}
+
+.filter-reset {
+  align-self: flex-end;
+  background: none;
+  color: var(--text-dim);
+}
+.filter-reset:hover {
+  color: var(--text);
+  background: none;
+}
+
 /* ---- Table ---- */
 .table-scroll {
   overflow-x: auto;

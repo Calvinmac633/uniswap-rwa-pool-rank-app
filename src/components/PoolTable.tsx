@@ -13,7 +13,7 @@ export type DisplayRow = { row: PoolRow; computed: RowComputation };
 // The columns with one obvious numeric value to sort by. Text/categorical
 // columns (Asset, Counter-asset, Version, Hooks, Trend, Suggested range)
 // aren't included — there's no single natural sort key for those.
-export type SortColumn = "fee" | "tvl" | "activeLiquidity" | "vol24h" | "momentum" | WindowKey;
+export type SortColumn = "fee" | "tvl" | "yourShare" | "vol24h" | "momentum" | WindowKey;
 export type SortDirection = "asc" | "desc";
 
 export const DEFAULT_SORT: { column: SortColumn; direction: SortDirection } = { column: "24h", direction: "desc" };
@@ -28,8 +28,8 @@ export function getSortValue(d: DisplayRow, column: SortColumn): number | null {
     }
     case "tvl":
       return row.fast?.reserveInUsdTotal ?? null;
-    case "activeLiquidity":
-      return computed.activeLiquidityUsd;
+    case "yourShare":
+      return computed.userShareOfLiquidity;
     case "vol24h":
       return row.fast?.volume24hUsd ?? null;
     case "momentum":
@@ -133,7 +133,7 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
             <th>Pool</th>
             <SortableHeader column="fee" label="Fee" activeSort={sort} onSort={onSort} />
             <SortableHeader column="tvl" label="Total TVL" activeSort={sort} onSort={onSort} />
-            <SortableHeader column="activeLiquidity" label="Active liquidity" activeSort={sort} onSort={onSort} />
+            <SortableHeader column="yourShare" label="Your Share" activeSort={sort} onSort={onSort} />
             <SortableHeader column="vol24h" label="Vol 24h" activeSort={sort} onSort={onSort} />
             {WINDOW_KEYS.map((w) => (
               <SortableHeader key={w} column={w} label={w} activeSort={sort} onSort={onSort} />
@@ -192,18 +192,9 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
                 </td>
                 <td
                   className="num"
-                  title={
-                    tickState.kind === "concentrated"
-                      ? "Approximate dollar value of the pool's active liquidity, at the range width you've currently selected — narrower ranges show a smaller figure for the same underlying liquidity, since a dollar goes further in a tighter range."
-                      : undefined
-                  }
+                  title="What fraction of this pool's currently-active liquidity your hypothetical deposit (Deposit Size at Range Width) would represent — not a real position, just a what-if given today's price and this pool's live active liquidity."
                 >
-                  {formatUsdCompact(computed.activeLiquidityUsd)}
-                  {computed.userShareOfLiquidity !== null && (
-                    <div style={{ color: "var(--text-faint)", fontSize: 10.5 }}>
-                      your share ≈ {formatPercent(computed.userShareOfLiquidity, 3)}
-                    </div>
-                  )}
+                  {computed.userShareOfLiquidity !== null ? formatPercent(computed.userShareOfLiquidity, 3) : <span className="na">—</span>}
                 </td>
                 <td className="num">{formatUsdCompact(fast?.volume24hUsd)}</td>
                 {WINDOW_KEYS.map((w) => (

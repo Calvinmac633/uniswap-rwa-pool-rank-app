@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controls } from "@/components/Controls";
 import { Disclosure } from "@/components/Disclosure";
-import { PoolTable, type DisplayRow } from "@/components/PoolTable";
+import { PoolTable, compareRows, DEFAULT_SORT, type DisplayRow, type SortColumn } from "@/components/PoolTable";
 import { computeRowMetrics } from "@/lib/clientCompute";
 import { deserializePoolRow, type WirePoolRow } from "@/lib/wireTypes";
 import type { DiscoveryMeta, PoolRow, SlowMetrics } from "@/lib/types";
@@ -47,6 +47,16 @@ export default function Home() {
   const [depositUsd, setDepositUsd] = useState(10_000);
   const [rangeWidthPercent, setRangeWidthPercent] = useState(5);
   const [momentumFloor, setMomentumFloor] = useState(0.5);
+  const [sort, setSort] = useState(DEFAULT_SORT);
+
+  // Click cycles: descending -> ascending -> back to the default sort.
+  const handleSort = useCallback((column: SortColumn) => {
+    setSort((prev) => {
+      if (prev.column !== column) return { column, direction: "desc" };
+      if (prev.direction === "desc") return { column, direction: "asc" };
+      return DEFAULT_SORT;
+    });
+  }, []);
 
   // Guards against a slow trend-data load from a previous pool set clobbering
   // state after the user hits "rescan" and gets a different pool list back.
@@ -115,7 +125,8 @@ export default function Home() {
   const slowDataLoadedFor = useMemo(() => new Set(Object.keys(slowMetrics)), [slowMetrics]);
 
   // Default sort: 24h APR descending, with the momentum filter applied — see
-  // Step 6c: raw 24h APR alone systematically surfaces one-off spikes.
+  // Step 6c: raw 24h APR alone systematically surfaces one-off spikes. Any
+  // column can be clicked to sort by instead (see PoolTable's compareRows).
   const visibleRows = useMemo(() => {
     const filtered = displayRows.filter((d) => {
       if (!slowDataLoadedFor.has(d.row.identity.address)) return true; // don't hide rows still loading
@@ -123,14 +134,8 @@ export default function Home() {
       if (!Number.isFinite(momentumFloor)) return true; // cleared/invalid input -> no floor, not "hide everything"
       return d.computed.momentum >= momentumFloor;
     });
-    return filtered.sort((a, b) => {
-      const aprA = a.computed.windowAprs["24h"];
-      const aprB = b.computed.windowAprs["24h"];
-      const valA = aprA.kind === "value" ? aprA.apr : -Infinity;
-      const valB = aprB.kind === "value" ? aprB.apr : -Infinity;
-      return valB - valA;
-    });
-  }, [displayRows, momentumFloor, slowDataLoadedFor]);
+    return filtered.sort((a, b) => compareRows(a, b, sort.column, sort.direction));
+  }, [displayRows, momentumFloor, slowDataLoadedFor, sort]);
 
   const hiddenByMomentumCount = displayRows.length - visibleRows.length;
   const remainingForTrendData = rows.length - slowDataLoadedFor.size;
@@ -196,7 +201,7 @@ export default function Home() {
         <div className="empty-state">Loading pools…</div>
       ) : (
         <>
-          <PoolTable rows={visibleRows} slowDataLoadedFor={slowDataLoadedFor} />
+          <PoolTable rows={visibleRows} slowDataLoadedFor={slowDataLoadedFor} sort={sort} onSort={handleSort} />
           {remainingForTrendData > 0 && (!trendLoadState || trendLoadState.loaded >= trendLoadState.total) && (
             <div style={{ marginTop: 12 }}>
               <button

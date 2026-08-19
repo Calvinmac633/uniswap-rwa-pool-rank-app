@@ -10,10 +10,45 @@ const SPARKLINE_WINDOWS: WindowKey[] = [...WINDOW_KEYS].reverse(); // long -> sh
 
 export type DisplayRow = { row: PoolRow; computed: RowComputation };
 
-type PoolTableProps = {
-  rows: DisplayRow[];
-  slowDataLoadedFor: Set<string>;
-};
+// The columns with one obvious numeric value to sort by. Text/categorical
+// columns (Asset, Counter-asset, Version, Hooks, Trend, Suggested range)
+// aren't included — there's no single natural sort key for those.
+export type SortColumn = "fee" | "tvl" | "activeLiquidity" | "vol24h" | "momentum" | WindowKey;
+export type SortDirection = "asc" | "desc";
+
+export const DEFAULT_SORT: { column: SortColumn; direction: SortDirection } = { column: "24h", direction: "desc" };
+
+/** The raw numeric value a row sorts by for a given column, or null if unavailable — nulls always sort last. */
+export function getSortValue(d: DisplayRow, column: SortColumn): number | null {
+  const { row, computed } = d;
+  switch (column) {
+    case "fee": {
+      const ts = row.tickState;
+      return ts.kind === "concentrated" ? ts.liveLpFee : ts.kind === "full-range" ? ts.feePpm : null;
+    }
+    case "tvl":
+      return row.fast?.reserveInUsdTotal ?? null;
+    case "activeLiquidity":
+      return computed.activeLiquidityUsd;
+    case "vol24h":
+      return row.fast?.volume24hUsd ?? null;
+    case "momentum":
+      return computed.momentum;
+    default: {
+      const apr = computed.windowAprs[column];
+      return apr?.kind === "value" ? apr.apr : null;
+    }
+  }
+}
+
+export function compareRows(a: DisplayRow, b: DisplayRow, column: SortColumn, direction: SortDirection): number {
+  const va = getSortValue(a, column);
+  const vb = getSortValue(b, column);
+  if (va === null && vb === null) return 0;
+  if (va === null) return 1; // n/a always sorts last, regardless of direction
+  if (vb === null) return -1;
+  return direction === "desc" ? vb - va : va - vb;
+}
 
 function momentumClass(momentum: number | null): string {
   if (momentum === null) return "";
@@ -59,7 +94,33 @@ function AprWindowCell({
   );
 }
 
-export function PoolTable({ rows, slowDataLoadedFor }: PoolTableProps) {
+type SortableHeaderProps = {
+  column: SortColumn;
+  label: string;
+  title?: string;
+  activeSort: { column: SortColumn; direction: SortDirection };
+  onSort: (column: SortColumn) => void;
+};
+
+/** Click cycles: descending -> ascending -> back to the default sort (see DEFAULT_SORT). */
+function SortableHeader({ column, label, title, activeSort, onSort }: SortableHeaderProps) {
+  const isActive = activeSort.column === column;
+  return (
+    <th className="num sortable" title={title} onClick={() => onSort(column)}>
+      {label}
+      <span className="sort-indicator">{isActive ? (activeSort.direction === "desc" ? " ▼" : " ▲") : ""}</span>
+    </th>
+  );
+}
+
+type PoolTableProps = {
+  rows: DisplayRow[];
+  slowDataLoadedFor: Set<string>;
+  sort: { column: SortColumn; direction: SortDirection };
+  onSort: (column: SortColumn) => void;
+};
+
+export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTableProps) {
   if (rows.length === 0) {
     return <div className="empty-state">No qualifying RWA pools found yet.</div>;
   }
@@ -72,18 +133,16 @@ export function PoolTable({ rows, slowDataLoadedFor }: PoolTableProps) {
             <th>Asset</th>
             <th>Counter-asset</th>
             <th>Version</th>
-            <th>Fee</th>
+            <SortableHeader column="fee" label="Fee" activeSort={sort} onSort={onSort} />
             <th>Hooks</th>
-            <th className="num">Total TVL</th>
-            <th className="num">Active liquidity</th>
-            <th className="num">Vol 24h</th>
+            <SortableHeader column="tvl" label="Total TVL" activeSort={sort} onSort={onSort} />
+            <SortableHeader column="activeLiquidity" label="Active liquidity" activeSort={sort} onSort={onSort} />
+            <SortableHeader column="vol24h" label="Vol 24h" activeSort={sort} onSort={onSort} />
             {WINDOW_KEYS.map((w) => (
-              <th key={w} className="num">
-                {w}
-              </th>
+              <SortableHeader key={w} column={w} label={w} activeSort={sort} onSort={onSort} />
             ))}
-            <th title="Trend shape across all windows, long (1mo) to short (1h)">Trend</th>
-            <th className="num">Momentum</th>
+            <th title="Trend shape across all windows, long (1mo) to short (1h)">Decay Ratio</th>
+            <SortableHeader column="momentum" label="Momentum" activeSort={sort} onSort={onSort} />
             <th>Suggested range</th>
           </tr>
         </thead>

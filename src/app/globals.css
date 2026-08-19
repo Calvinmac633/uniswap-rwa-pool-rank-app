@@ -193,6 +193,18 @@ thead th {
   z-index: 1;
 }
 
+thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+thead th.sortable:hover {
+  color: var(--text);
+}
+.sort-indicator {
+  color: var(--accent);
+  font-size: 10px;
+}
+
 tbody td {
   padding: 8px 10px;
   border-bottom: 1px solid #1e222b;

@@ -130,11 +130,8 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
       <table>
         <thead>
           <tr>
-            <th>Asset</th>
-            <th>Counter-asset</th>
-            <th>Version</th>
+            <th>Pool</th>
             <SortableHeader column="fee" label="Fee" activeSort={sort} onSort={onSort} />
-            <th>Hooks</th>
             <SortableHeader column="tvl" label="Total TVL" activeSort={sort} onSort={onSort} />
             <SortableHeader column="activeLiquidity" label="Active liquidity" activeSort={sort} onSort={onSort} />
             <SortableHeader column="vol24h" label="Vol 24h" activeSort={sort} onSort={onSort} />
@@ -161,20 +158,26 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
               <tr key={identity.address}>
                 <td>
                   <div className="asset-cell">
-                    <a className="explorer-link asset-symbol" href={explorerAddressUrl(identity.rwaToken.address)} target="_blank" rel="noopener noreferrer">
-                      {identity.rwaToken.symbol}
-                    </a>
-                    {identity.rwaToken.warning && (
-                      <span className="warnings-icon" title={identity.rwaToken.warning}>
-                        ⚠
-                      </span>
-                    )}
-                    <CopyableAddress value={identity.address} />
+                    <div className="asset-line1">
+                      <a className="explorer-link asset-symbol" href={explorerAddressUrl(identity.rwaToken.address)} target="_blank" rel="noopener noreferrer">
+                        {identity.rwaToken.symbol}
+                      </a>
+                      {identity.rwaToken.warning && (
+                        <span className="warnings-icon" title={identity.rwaToken.warning}>
+                          ⚠
+                        </span>
+                      )}
+                      <span className="counter-symbol">/ {identity.counterToken.symbol}</span>
+                    </div>
+                    <div className="asset-line2">
+                      <span className="version-pill">{identity.version}</span>
+                      <HookBadges
+                        badges={hookBadges}
+                        hookAddress={tickState.kind === "concentrated" ? tickState.hookAddress : null}
+                      />
+                      <CopyableAddress value={identity.address} />
+                    </div>
                   </div>
-                </td>
-                <td>{identity.counterToken.symbol}</td>
-                <td>
-                  <span className="version-pill">{identity.version}</span>
                 </td>
                 <td>
                   {feePpm !== null ? formatFeePpm(feePpm) : "—"}
@@ -183,12 +186,6 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
                       dynamic
                     </span>
                   )}
-                </td>
-                <td>
-                  <HookBadges
-                    badges={hookBadges}
-                    hookAddress={tickState.kind === "concentrated" ? tickState.hookAddress : null}
-                  />
                 </td>
                 <td className="num" title="GeckoTerminal total reserves — NOT the active-liquidity denominator used for APR">
                   {formatUsdCompact(fast?.reserveInUsdTotal)}

@@ -100,13 +100,15 @@ type SortableHeaderProps = {
   title?: string;
   activeSort: { column: SortColumn; direction: SortDirection };
   onSort: (column: SortColumn) => void;
+  /** Marks the first column of a visual group — draws a light divider before it. */
+  groupStart?: boolean;
 };
 
 /** Click cycles: descending -> ascending -> back to the default sort (see DEFAULT_SORT). */
-function SortableHeader({ column, label, title, activeSort, onSort }: SortableHeaderProps) {
+function SortableHeader({ column, label, title, activeSort, onSort, groupStart }: SortableHeaderProps) {
   const isActive = activeSort.column === column;
   return (
-    <th className="num sortable" title={title} onClick={() => onSort(column)}>
+    <th className={`num sortable${groupStart ? " group-start" : ""}`} title={title} onClick={() => onSort(column)}>
       {label}
       <span className="sort-indicator">{isActive ? (activeSort.direction === "desc" ? " ▼" : " ▲") : ""}</span>
     </th>
@@ -130,15 +132,17 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
       <table>
         <thead>
           <tr>
-            <th>Pool</th>
-            <SortableHeader column="fee" label="Fee" activeSort={sort} onSort={onSort} />
+            <th className="col-sticky">Pool</th>
+            <SortableHeader column="fee" label="Fee" activeSort={sort} onSort={onSort} groupStart />
             <SortableHeader column="tvl" label="Total TVL" activeSort={sort} onSort={onSort} />
             <SortableHeader column="yourShare" label="Your Share" activeSort={sort} onSort={onSort} />
-            <SortableHeader column="vol24h" label="Vol 24h" activeSort={sort} onSort={onSort} />
+            <SortableHeader column="vol24h" label="Vol 24h" activeSort={sort} onSort={onSort} groupStart />
             {WINDOW_KEYS.map((w) => (
               <SortableHeader key={w} column={w} label={w} activeSort={sort} onSort={onSort} />
             ))}
-            <th title="Trend shape across all windows, long (1mo) to short (1h)">Decay Ratio</th>
+            <th className="group-start" title="Trend shape across all windows, long (1mo) to short (1h)">
+              Decay Ratio
+            </th>
             <SortableHeader column="momentum" label="Momentum" activeSort={sort} onSort={onSort} />
             <th>Suggested range</th>
           </tr>
@@ -156,7 +160,7 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
 
             return (
               <tr key={identity.address}>
-                <td>
+                <td className="col-sticky">
                   <div className="asset-cell">
                     <div className="asset-line1">
                       <a className="explorer-link asset-symbol" href={explorerAddressUrl(identity.rwaToken.address)} target="_blank" rel="noopener noreferrer">
@@ -179,7 +183,7 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
                     </div>
                   </div>
                 </td>
-                <td>
+                <td className="group-start">
                   {feePpm !== null ? formatFeePpm(feePpm) : "—"}
                   {isDynamicFee && (
                     <span className="badge badge-dynamic-fee" style={{ marginLeft: 4 }} title="Live fee — this pool uses a dynamic-fee hook, so the rate can change block to block.">
@@ -196,7 +200,7 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
                 >
                   {computed.userShareOfLiquidity !== null ? formatPercent(computed.userShareOfLiquidity, 3) : <span className="na">—</span>}
                 </td>
-                <td className="num">{formatUsdCompact(fast?.volume24hUsd)}</td>
+                <td className="num group-start">{formatUsdCompact(fast?.volume24hUsd)}</td>
                 {WINDOW_KEYS.map((w) => (
                   <td key={w} className="num">
                     <AprWindowCell
@@ -207,7 +211,7 @@ export function PoolTable({ rows, slowDataLoadedFor, sort, onSort }: PoolTablePr
                     />
                   </td>
                 ))}
-                <td>
+                <td className="group-start">
                   {!slowLoaded ? (
                     <span className="na">loading…</span>
                   ) : (

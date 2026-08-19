@@ -1,5 +1,5 @@
 import { ROBINHOOD_EXPLORER_URL } from "@/lib/chain/addresses";
-import { formatUsdCompact, formatCompactNumber, formatPercent, formatFeePpm } from "@/lib/format";
+import { formatUsdCompact, formatPercent, formatFeePpm } from "@/lib/format";
 import { WINDOW_KEYS, type PoolRow, type WindowApr, type WindowKey } from "@/lib/types";
 import type { RowComputation } from "@/lib/clientCompute";
 import { Sparkline } from "./Sparkline";
@@ -134,12 +134,15 @@ export function PoolTable({ rows, slowDataLoadedFor }: PoolTableProps) {
                 <td className="num" title="GeckoTerminal total reserves — NOT the active-liquidity denominator used for APR">
                   {formatUsdCompact(fast?.reserveInUsdTotal)}
                 </td>
-                <td className="num">
-                  {tickState.kind === "concentrated"
-                    ? formatCompactNumber(tickState.liquidity)
-                    : tickState.kind === "full-range"
-                      ? "full range"
-                      : "—"}
+                <td
+                  className="num"
+                  title={
+                    tickState.kind === "concentrated"
+                      ? "Approximate dollar value of the pool's active liquidity, at the range width you've currently selected — narrower ranges show a smaller figure for the same underlying liquidity, since a dollar goes further in a tighter range."
+                      : undefined
+                  }
+                >
+                  {formatUsdCompact(computed.activeLiquidityUsd)}
                   {computed.userShareOfLiquidity !== null && (
                     <div style={{ color: "var(--text-faint)", fontSize: 10.5 }}>
                       your share ≈ {formatPercent(computed.userShareOfLiquidity, 3)}

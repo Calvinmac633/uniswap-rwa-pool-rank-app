@@ -1,16 +1,8 @@
 const usdCompact = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 2 });
-const numCompact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
 
 export function formatUsdCompact(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
   return usdCompact.format(value);
-}
-
-export function formatCompactNumber(value: number | bigint | null | undefined): string {
-  if (value === null || value === undefined) return "—";
-  const n = typeof value === "bigint" ? Number(value) : value;
-  if (!Number.isFinite(n)) return "—";
-  return numCompact.format(n);
 }
 
 /** Used for both APR values and plain ratios (e.g. momentum-adjacent shares) — same formula either way. */

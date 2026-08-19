@@ -10,6 +10,18 @@ export type RowComputation = {
   windowAprs: Record<WindowKey, WindowApr>;
   momentum: number | null;
   userShareOfLiquidity: number | null;
+  /**
+   * Active liquidity expressed in USD instead of Uniswap's raw internal L
+   * unit (which isn't human-readable — it's not a dollar amount or a token
+   * count). For v2 this is just the pool's total value (v2 has no
+   * concentration, so all of it is always "active"). For v3/v4 there's no
+   * single USD figure for a bare L value without also assuming a range width
+   * — this uses the width from the Range Width control, so it's "how many
+   * dollars, spread across the range you've selected, would match the pool's
+   * real active liquidity." It will shift when you change that control (a
+   * dollar goes further in a narrower range) — that's expected, not a bug.
+   */
+  activeLiquidityUsd: number | null;
   /** null when this pool has no concentration risk (v2) or range data isn't available yet. */
   suggestedRangePercent: number | null;
   /** True when the user's chosen range is materially tighter than the suggested one (see Step 6d). */
@@ -30,6 +42,7 @@ export function computeRowMetrics(row: PoolRow, depositUsd: number, rangeWidthPe
     ) as Record<WindowKey, WindowApr>,
     momentum: null,
     userShareOfLiquidity: null,
+    activeLiquidityUsd: null,
     suggestedRangePercent: null,
     rangeTighterThanSuggested: false,
     unavailableReason: reason,
@@ -71,6 +84,7 @@ export function computeRowMetrics(row: PoolRow, depositUsd: number, rangeWidthPe
       windowAprs,
       momentum: computeMomentum(windowAprs),
       userShareOfLiquidity,
+      activeLiquidityUsd: poolValueUsd, // v2 has no concentration — the whole pool is always "active"
       suggestedRangePercent: null, // no range risk on a full-range v2 position
       rangeTighterThanSuggested: false,
       unavailableReason: null,
@@ -106,6 +120,12 @@ export function computeRowMetrics(row: PoolRow, depositUsd: number, rangeWidthPe
   const feeFraction = row.tickState.liveLpFee / FEE_PPM_DIVISOR;
   const windowAprs = computeWindowAprs(windowVolumeUsd, feeFraction, userShareOfLiquidity, depositUsd);
 
+  // Liquidity is linear in deposit size (see liquidity.test.ts), so the same
+  // ratio that produced userLiquidity from depositUsd converts the pool's
+  // real active liquidity into an equivalent dollar figure, at the range
+  // width currently selected.
+  const activeLiquidityUsd = userLiquidity > 0n ? depositUsd * (Number(row.tickState.liquidity) / Number(userLiquidity)) : null;
+
   const rangeTighterThanSuggested =
     suggestedRangePercent !== null && rangeWidthPercent < suggestedRangePercent * TIGHTER_RANGE_WARNING_RATIO;
 
@@ -113,6 +133,7 @@ export function computeRowMetrics(row: PoolRow, depositUsd: number, rangeWidthPe
     windowAprs,
     momentum: computeMomentum(windowAprs),
     userShareOfLiquidity,
+    activeLiquidityUsd,
     suggestedRangePercent,
     rangeTighterThanSuggested,
     unavailableReason: null,

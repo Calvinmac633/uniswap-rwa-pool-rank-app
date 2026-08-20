@@ -50,7 +50,7 @@ export default function Home() {
   const [rangeWidthPercent, setRangeWidthPercent] = useState(5);
   const [sort, setSort] = useState(DEFAULT_SORT);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   // Click cycles: descending -> ascending -> back to the default sort.
   const handleSort = useCallback((column: SortColumn) => {

@@ -34,7 +34,7 @@ export const DEFAULT_FILTERS: Filters = {
   vol24h: NO_BOUND,
   aprWindow: "24h",
   apr: NO_BOUND,
-  momentum: { min: 0.5, max: null }, // preserves the app's original default (Step 6c)
+  momentum: NO_BOUND,
   suggestedRange: NO_BOUND,
 };
 
@@ -53,7 +53,7 @@ export function hasActiveFilters(filters: Filters): boolean {
     filters.vol24h.max !== null ||
     filters.apr.min !== null ||
     filters.apr.max !== null ||
-    filters.momentum.min !== DEFAULT_FILTERS.momentum.min ||
+    filters.momentum.min !== null ||
     filters.momentum.max !== null ||
     filters.suggestedRange.min !== null ||
     filters.suggestedRange.max !== null

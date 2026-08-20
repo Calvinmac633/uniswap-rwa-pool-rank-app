@@ -127,10 +127,9 @@ export default function Home() {
 
   const slowDataLoadedFor = useMemo(() => new Set(Object.keys(slowMetrics)), [slowMetrics]);
 
-  // Default sort: 24h APR descending, with the default momentum floor applied
-  // as part of `filters` — see Step 6c: raw 24h APR alone systematically
-  // surfaces one-off spikes. Any column can be clicked to sort by instead
-  // (see PoolTable's compareRows).
+  // Default sort: 24h APR descending, with whatever filters are active applied
+  // first (see filters.ts — no bounds by default). Any column can be clicked
+  // to sort by instead (see PoolTable's compareRows).
   const visibleRows = useMemo(() => {
     const filtered = displayRows.filter((d) => matchesFilters(d, filters, slowDataLoadedFor.has(d.row.identity.address)));
     return filtered.sort((a, b) => compareRows(a, b, sort.column, sort.direction));

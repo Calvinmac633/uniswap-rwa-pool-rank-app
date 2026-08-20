@@ -57,16 +57,17 @@ function makeComputed(overrides: Partial<RowComputation> = {}): RowComputation {
   };
 }
 
-test("matchesFilters: default filters keep a normal row (except the momentum floor still applies)", () => {
+test("matchesFilters: default filters (no bounds set) keep every row, including a fading one", () => {
   const row = makeRow();
-  const computed = makeComputed(); // momentum 0.9 > default floor 0.5
-  assert.equal(matchesFilters({ row, computed }, DEFAULT_FILTERS, true), true);
+  assert.equal(matchesFilters({ row, computed: makeComputed({ momentum: 0.9 }) }, DEFAULT_FILTERS, true), true);
+  assert.equal(matchesFilters({ row, computed: makeComputed({ momentum: 0.3 }) }, DEFAULT_FILTERS, true), true);
 });
 
-test("matchesFilters: default momentum floor (0.5) still excludes a fading pool", () => {
+test("matchesFilters: an explicit momentum min excludes a fading pool", () => {
   const row = makeRow();
-  const computed = makeComputed({ momentum: 0.3 });
-  assert.equal(matchesFilters({ row, computed }, DEFAULT_FILTERS, true), false);
+  const filters: Filters = { ...DEFAULT_FILTERS, momentum: { min: 0.5, max: null } };
+  assert.equal(matchesFilters({ row, computed: makeComputed({ momentum: 0.9 }) }, filters, true), true);
+  assert.equal(matchesFilters({ row, computed: makeComputed({ momentum: 0.3 }) }, filters, true), false);
 });
 
 test("matchesFilters: a row that hasn't loaded slow-tier data is never hidden by APR/momentum/range filters", () => {
@@ -108,5 +109,5 @@ test("hasActiveFilters: false for the untouched default, true once anything chan
   assert.equal(hasActiveFilters(DEFAULT_FILTERS), false);
   assert.equal(hasActiveFilters({ ...DEFAULT_FILTERS, search: "spy" }), true);
   assert.equal(hasActiveFilters({ ...DEFAULT_FILTERS, tvl: { min: 100, max: null } }), true);
-  assert.equal(hasActiveFilters({ ...DEFAULT_FILTERS, momentum: { min: 0, max: null } }), true); // moved off the default floor
+  assert.equal(hasActiveFilters({ ...DEFAULT_FILTERS, momentum: { min: 0, max: null } }), true);
 });

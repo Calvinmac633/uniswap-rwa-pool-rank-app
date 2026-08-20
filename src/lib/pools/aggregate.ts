@@ -4,7 +4,7 @@
 // metrics for pools we already know about via /pools/multi/ (30 per call) plus
 // multicalled tick state (viem RPC, unrelated to GeckoTerminal's rate limit) —
 // both fast enough to run on every page load / manual refresh.
-import { USDG } from "../chain/addresses";
+import { USDG, WETH } from "../chain/addresses";
 import { decodeHookPermissions, type HookBadge } from "../chain/hooks";
 import { discoverUniswapPools, type DiscoveredPool } from "../gecko/discovery";
 import { fetchPoolMetrics } from "../gecko/multi";
@@ -54,6 +54,7 @@ function toCounterTokenInfo(token: ClassifiedToken): CounterTokenInfo {
 }
 
 const USDG_LOWER = USDG.toLowerCase();
+const WETH_LOWER = WETH.toLowerCase();
 
 /**
  * Picks which side of the pool is "the RWA asset" vs "the counter-asset", and
@@ -62,11 +63,12 @@ const USDG_LOWER = USDG.toLowerCase();
  * later, since GeckoTerminal's base/quote is a display convention independent
  * of the pool's actual on-chain token0/token1 order.
  *
- * A pool only qualifies if the counter-asset is USDG or another RWA token
- * (stock/stock pools stay in) — WETH and any other non-RWA token as the
- * counter-asset are excluded here, at the earliest possible point, so they
- * never reach the metrics/tick-state/hook/candle fetching downstream (all of
- * which operate on whatever this function lets through).
+ * A pool only qualifies if the counter-asset is USDG, WETH, or another RWA
+ * token (stock/stock pools stay in) — any other non-RWA token (memecoins,
+ * random junk tokens) as the counter-asset is excluded here, at the earliest
+ * possible point, so it never reaches the metrics/tick-state/hook/candle
+ * fetching downstream (all of which operate on whatever this function lets
+ * through).
  */
 function resolveSides(
   pool: DiscoveredPool,
@@ -95,7 +97,7 @@ function resolveSides(
     return null; // neither side is RWA at all
   }
 
-  const counterIsAllowed = counter.isRwa || counter.address === USDG_LOWER;
+  const counterIsAllowed = counter.isRwa || counter.address === USDG_LOWER || counter.address === WETH_LOWER;
   if (!counterIsAllowed) return null;
 
   return { rwa, counter, baseIsRwa };

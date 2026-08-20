@@ -1,21 +1,29 @@
 :root {
-  /* Robinhood-inspired dark palette: true neutral black rather than a
-     navy-tinted dark, bright signature green as the one strong accent color,
-     everything else kept quiet so the green (and the data) stands out. */
-  --bg: #000000;
-  --panel: #141414;
-  --panel-border: #242424;
-  --text: #ffffff;
-  --text-dim: #8e8e93;
-  --text-faint: #58585a;
+  /* Bright "Stripe/Linear/Robinhood" light palette: soft off-white page bg
+     with white cards that lift off it via shadow (not borders), near-black
+     text, Robinhood green as the one strong accent. */
+  --bg: #f7f8fa;
+  --panel: #ffffff;
+  --panel-border: #e7e8eb;
+  --text: #0b0d10;
+  --text-dim: #6b7280;
+  --text-faint: #9aa0a8;
   --accent: #00c805;
-  --accent-text: #001a00;
-  --green: #00c805;
-  --red: #ff3b30;
-  --amber: #ffb800;
-  --blue: #0a84ff;
+  --accent-hover: #00b304;
+  --accent-text: #ffffff;
+  --accent-soft-bg: #e6faea;
+  --green: #00a809;
+  --green-soft-bg: #e6faea;
+  --red: #dc2626;
+  --red-soft-bg: #fdecec;
+  --amber: #b45309;
+  --amber-soft-bg: #fef3e0;
+  --blue: #1d4ed8;
+  --blue-soft-bg: #e8f0fe;
   --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.03);
+  --shadow-md: 0 2px 4px rgba(16, 24, 40, 0.04), 0 8px 20px rgba(16, 24, 40, 0.06);
 }
 
 * {
@@ -34,29 +42,40 @@ body {
 
 .page {
   max-width: 100%;
-  padding: 24px 28px 60px;
+  padding: 28px 32px 60px;
 }
 
 .page-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .page-header h1 {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.page-header h1::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--accent);
 }
 
 .page-subtitle {
   color: var(--text-dim);
-  font-size: 13px;
-  margin: 0 0 20px;
+  font-size: 13.5px;
+  margin: 0 0 22px;
   max-width: 900px;
 }
 
@@ -68,26 +87,30 @@ body {
   font-size: 12.5px;
   line-height: 1.5;
   margin-bottom: 10px;
-  border: none;
+  border: 1px solid transparent;
 }
 .disclosure {
-  background: rgba(255, 184, 0, 0.1);
-  color: #ffcf4d;
+  background: var(--amber-soft-bg);
+  border-color: #f6dfb8;
+  color: #92400e;
 }
 .disclosure strong {
-  color: #ffdc7a;
+  color: #7a3406;
 }
 .banner-error {
-  background: rgba(255, 59, 48, 0.1);
-  color: #ff8079;
+  background: var(--red-soft-bg);
+  border-color: #f7c9c9;
+  color: #b91c1c;
 }
 .banner-warning {
-  background: rgba(255, 184, 0, 0.1);
-  color: #ffcf4d;
+  background: var(--amber-soft-bg);
+  border-color: #f6dfb8;
+  color: #92400e;
 }
 .banner-info {
-  background: rgba(10, 132, 255, 0.1);
-  color: #6cb3ff;
+  background: var(--blue-soft-bg);
+  border-color: #c8dbfb;
+  color: #1e40af;
 }
 
 /* ---- Controls ---- */
@@ -97,9 +120,11 @@ body {
   align-items: flex-end;
   gap: 24px;
   background: var(--panel);
+  border: 1px solid var(--panel-border);
   border-radius: 14px;
   padding: 16px 20px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .control {
@@ -113,11 +138,11 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-dim);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .control input[type="number"] {
-  background: #000000;
+  background: #fbfbfc;
   border: 1px solid var(--panel-border);
   color: var(--text);
   border-radius: 8px;
@@ -129,6 +154,7 @@ body {
 .control input[type="number"]:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft-bg);
 }
 
 .control-buttons {
@@ -138,17 +164,17 @@ body {
 }
 
 button {
-  background: var(--panel-border);
-  border: none;
+  background: #f0f1f3;
+  border: 1px solid transparent;
   color: var(--text);
   border-radius: 999px;
   padding: 8px 16px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 button:hover:not(:disabled) {
-  background: #333335;
+  background: #e6e7ea;
 }
 button:disabled {
   opacity: 0.5;
@@ -157,9 +183,10 @@ button:disabled {
 button.primary {
   background: var(--accent);
   color: var(--accent-text);
+  box-shadow: 0 2px 8px rgba(0, 200, 5, 0.28);
 }
 button.primary:hover:not(:disabled) {
-  background: #00e005;
+  background: var(--accent-hover);
 }
 
 .last-updated {
@@ -175,9 +202,11 @@ button.primary:hover:not(:disabled) {
   align-items: flex-end;
   gap: 18px;
   background: var(--panel);
+  border: 1px solid var(--panel-border);
   border-radius: 14px;
   padding: 16px 20px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .filter-group {
@@ -191,12 +220,12 @@ button.primary:hover:not(:disabled) {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-dim);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .filter-search,
 .filter-select {
-  background: #000000;
+  background: #fbfbfc;
   border: 1px solid var(--panel-border);
   color: var(--text);
   border-radius: 8px;
@@ -208,6 +237,7 @@ button.primary:hover:not(:disabled) {
 .filter-select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft-bg);
 }
 
 .filter-chips {
@@ -215,23 +245,23 @@ button.primary:hover:not(:disabled) {
   gap: 6px;
 }
 .filter-chip {
-  background: #000000;
+  background: #fbfbfc;
   border: 1px solid var(--panel-border);
   color: var(--text-dim);
   border-radius: 999px;
   padding: 5px 12px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
 .filter-chip:hover {
-  border-color: #3a3a3c;
+  border-color: #cfd2d8;
   color: var(--text);
 }
 .filter-chip.active {
-  background: rgba(0, 200, 5, 0.14);
+  background: var(--accent-soft-bg);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--green);
 }
 
 .filter-minmax {
@@ -240,7 +270,7 @@ button.primary:hover:not(:disabled) {
   gap: 6px;
 }
 .filter-minmax input {
-  background: #000000;
+  background: #fbfbfc;
   border: 1px solid var(--panel-border);
   color: var(--text);
   border-radius: 8px;
@@ -252,6 +282,7 @@ button.primary:hover:not(:disabled) {
 .filter-minmax input:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft-bg);
 }
 .filter-minmax-sep {
   color: var(--text-faint);
@@ -261,10 +292,11 @@ button.primary:hover:not(:disabled) {
   align-self: flex-end;
   background: none;
   color: var(--text-dim);
+  border: 1px solid var(--panel-border);
 }
 .filter-reset:hover {
   color: var(--text);
-  background: none;
+  background: #f0f1f3;
 }
 
 /* ---- Table ---- */
@@ -272,8 +304,10 @@ button.primary:hover:not(:disabled) {
   overflow-x: auto;
   border-radius: 14px;
   background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-md);
   scrollbar-width: thin;
-  scrollbar-color: #333335 transparent;
+  scrollbar-color: #d3d5da transparent;
 }
 .table-scroll::-webkit-scrollbar {
   height: 10px;
@@ -282,12 +316,12 @@ button.primary:hover:not(:disabled) {
   background: transparent;
 }
 .table-scroll::-webkit-scrollbar-thumb {
-  background: #333335;
+  background: #d3d5da;
   border-radius: 999px;
   border: 2px solid var(--panel);
 }
 .table-scroll::-webkit-scrollbar-thumb:hover {
-  background: #47474a;
+  background: #b7bac1;
 }
 
 table {
@@ -300,13 +334,14 @@ table {
 thead th {
   position: sticky;
   top: 0;
-  background: #1a1a1a;
+  background: #fbfbfc;
   text-align: left;
   padding: 10px 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-dim);
   white-space: nowrap;
   z-index: 2;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 thead th.sortable {
@@ -317,13 +352,13 @@ thead th.sortable:hover {
   color: var(--text);
 }
 .sort-indicator {
-  color: var(--accent);
+  color: var(--green);
   font-size: 10px;
 }
 
 tbody td {
   padding: 10px 12px;
-  border-top: 1px solid #1c1c1c;
+  border-top: 1px solid #f0f1f3;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -336,36 +371,36 @@ td.col-sticky {
   left: 0;
   z-index: 1;
   background: var(--panel);
-  box-shadow: 1px 0 0 #232324;
+  box-shadow: 1px 0 0 var(--panel-border);
 }
 th.col-sticky {
   z-index: 3;
-  background: #1a1a1a;
+  background: #fbfbfc;
 }
 tbody tr:hover td.col-sticky {
-  background: #1a1a1a;
+  background: #fbfbfc;
 }
 tbody tr:nth-child(even) td.col-sticky {
-  background: #131313;
+  background: #fcfcfd;
 }
 tbody tr:nth-child(even):hover td.col-sticky {
-  background: #1a1a1a;
+  background: #fbfbfc;
 }
 
 /* Faint rhythm to help the eye track a row across ~20 columns. */
 tbody tr:nth-child(even) {
-  background: #0d0d0d;
+  background: #fafafb;
 }
 
 /* Light separators between column groups (identity / pool stats / activity /
    signals) so a very wide table reads in sections instead of one long blur. */
 td.group-start,
 th.group-start {
-  border-left: 1px solid #1c1c1c;
+  border-left: 1px solid #ececee;
 }
 
 tbody tr:hover {
-  background: #1a1a1a;
+  background: #f5f8ff;
 }
 
 .num {
@@ -422,7 +457,7 @@ a.explorer-link {
   text-decoration: none;
 }
 a.explorer-link:hover {
-  color: var(--accent);
+  color: var(--green);
 }
 
 .version-pill {
@@ -433,7 +468,7 @@ a.explorer-link:hover {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  background: #232324;
+  background: #eef0f3;
   color: var(--text-dim);
 }
 
@@ -458,28 +493,28 @@ a.explorer-link:hover {
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: 700;
   margin-right: 4px;
   margin-bottom: 2px;
   cursor: help;
   white-space: nowrap;
 }
 .badge-none {
-  background: #1e1e1f;
+  background: #eef0f3;
   color: var(--text-faint);
 }
 .badge-custom-logic {
-  background: rgba(255, 184, 0, 0.14);
+  background: var(--amber-soft-bg);
   color: var(--amber);
 }
 .badge-takes-swap-cut,
 .badge-charges-on-deposit,
 .badge-charges-on-exit {
-  background: rgba(255, 59, 48, 0.14);
-  color: #ff6a60;
+  background: var(--red-soft-bg);
+  color: var(--red);
 }
 .badge-dynamic-fee {
-  background: rgba(10, 132, 255, 0.14);
+  background: var(--blue-soft-bg);
   color: var(--blue);
 }
 
@@ -492,15 +527,15 @@ a.explorer-link:hover {
 }
 .momentum-hot {
   color: var(--green);
-  background: rgba(0, 200, 5, 0.14);
+  background: var(--green-soft-bg);
 }
 .momentum-fading {
-  color: #ff6a60;
-  background: rgba(255, 59, 48, 0.14);
+  color: var(--red);
+  background: var(--red-soft-bg);
 }
 .momentum-steady {
   color: var(--text-dim);
-  background: #1e1e1f;
+  background: #eef0f3;
 }
 
 .na {

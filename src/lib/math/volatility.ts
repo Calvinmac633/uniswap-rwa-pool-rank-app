@@ -2,7 +2,7 @@
 // 24h 1-sigma price move — "±X% to stay in range ~24h". Reuses the same
 // hourly candles already fetched for the window-APR math (see apr.ts); no
 // extra request.
-import type { Candle } from "../gecko/ohlcv";
+import type { Candle } from "../codex/bars";
 
 const MIN_CANDLES_FOR_VOLATILITY = 8; // below this, a stdev estimate is too noisy to show
 

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { computeWindowVolumes, computeWindowAprs, computeUserShare, computeMomentum } from "./apr";
 import { WINDOW_KEYS, type WindowApr } from "../types";
-import type { Candle } from "../gecko/ohlcv";
+import type { Candle } from "../codex/bars";
 
 function makeCandles(count: number, volumePerCandle: number, startT = 0, stepSeconds = 3600): Candle[] {
   return Array.from({ length: count }, (_, i) => ({

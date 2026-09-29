@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 import { getSlowPoolData } from "@/lib/pools/candles";
 
-const MAX_ADDRESSES_PER_REQUEST = 60; // ~2 GeckoTerminal calls each; keeps one request's wall time reasonable
+const MAX_ADDRESSES_PER_REQUEST = 60; // 1 Codex call each (~15s per request at the rate limit)
 
 export async function POST(request: Request) {
   let body: { addresses?: unknown; forceRefresh?: unknown };

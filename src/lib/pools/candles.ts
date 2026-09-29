@@ -3,7 +3,7 @@
 // realized volatility from them. Cached per-pool for hours, since "these
 // barely move hour to hour" — refetching on every page load would both be slow
 // and pointless.
-import { fetchCandlesForPools } from "../gecko/ohlcv";
+import { fetchCandlesForPools } from "../codex/bars";
 import { computeWindowVolumes } from "../math/apr";
 import { realizedVol24h1Sigma } from "../math/volatility";
 import type { SlowMetrics } from "../types";

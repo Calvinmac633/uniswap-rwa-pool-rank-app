@@ -3,7 +3,7 @@
 // so this is safe to run both server-side and client-side (the UI recomputes
 // APR instantly when the user tweaks deposit size / range width, without a
 // server round trip, since only the liquidity share depends on those inputs).
-import type { Candle } from "../gecko/ohlcv";
+import type { Candle } from "../codex/bars";
 import { WINDOW_HOURS, WINDOW_KEYS, type WindowApr, type WindowKey } from "../types";
 
 const HOURLY_WINDOWS: WindowKey[] = ["1h", "2h", "4h", "6h", "8h", "12h", "24h"];

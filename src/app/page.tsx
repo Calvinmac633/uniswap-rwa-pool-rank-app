@@ -173,7 +173,7 @@ export default function Home() {
       {trendLoadState && trendLoadState.loaded < trendLoadState.total && (
         <div className="banner banner-info">
           Loading trend data: {trendLoadState.loaded}/{trendLoadState.total} pools. APR columns fill in as this completes
-          — this is rate-limited by GeckoTerminal's free tier, so it takes a bit.
+          (about 4 pools per second).
         </div>
       )}
       {hiddenByFilterCount > 0 && (

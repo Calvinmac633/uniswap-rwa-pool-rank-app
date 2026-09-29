@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { realizedVol24h1Sigma } from "./volatility";
-import type { Candle } from "../gecko/ohlcv";
+import type { Candle } from "../codex/bars";
 
 function candleAt(close: number, t: number): Candle {
   return { t, o: close, h: close, l: close, c: close, v: 0 };

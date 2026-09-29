@@ -24,6 +24,12 @@ export const POSITION_MANAGER_V4 = getAddress("0x58daec3116aae6D93017bAAea774905
 export const V4_QUOTER = getAddress("0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94");
 export const RESERVES_LENS = getAddress("0x0000001b173C3bbF3984D417d8614E3eed34865B");
 
+// From Uniswap's official deployments/json/4663.json (Uniswap/contracts repo),
+// checked 2026-09-25. Codex reports these as each pool's `exchange.address`, so
+// they're how we scope Codex discovery to Uniswap (and tell v2/v3/v4 apart).
+export const UNISWAP_V2_FACTORY = getAddress("0x8bcEaA40B9AcdfAedF85AdF4FF01F5Ad6517937f");
+export const UNISWAP_V3_FACTORY = getAddress("0x1f7d7550B1b028f7571E69A784071F0205FD2EfA");
+
 // NOT in deployments.json for this chain (that file only lists v4 "labs-supported"
 // contracts here) — but both confirmed to have live bytecode via eth_getCode, and
 // GeckoTerminal independently reports real, actively-traded pools through them

@@ -1,14 +1,12 @@
-// Two-tier data pipeline, per the performance strategy: discovery (which pools
-// exist — expensive, rate-limited by GeckoTerminal's per-dex pool listing calls)
-// is cached long and rarely re-run; the fast refresh only re-fetches current
-// metrics for pools we already know about via /pools/multi/ (30 per call) plus
-// multicalled tick state (viem RPC, unrelated to GeckoTerminal's rate limit) —
-// both fast enough to run on every page load / manual refresh.
+// Data pipeline: Codex discovery (which pools exist, plus their TVL/volume/prices
+// in the same pass — a few seconds) is cached briefly and doubles as the metrics
+// refresh; live tick state is then multicalled over RPC for those pools.
 import { USDG, WETH } from "../chain/addresses";
 import { decodeHookPermissions, type HookBadge } from "../chain/hooks";
-import { discoverUniswapPools, type DiscoveredPool } from "../gecko/discovery";
-import { fetchPoolMetrics } from "../gecko/multi";
+import { DEFAULT_MIN_LIQUIDITY_USD, discoverUniswapPoolsViaCodex } from "../codex/discovery";
+import type { DiscoveredPool } from "../gecko/discovery";
 import { classifyTokens, type ClassifiedToken } from "../rwa/classify";
+import { getRegistryTokens } from "../rwa/registry";
 import { resolveV4PoolKeys } from "./v4Index";
 import { getTickStates } from "./tickState";
 import type { DiscoveryMeta, FastMetrics, PoolIdentity, PoolRow, RwaTokenInfo, CounterTokenInfo } from "../types";
@@ -18,11 +16,17 @@ type QualifyingPool = { pool: DiscoveredPool; rwa: ClassifiedToken; counter: Cla
 type DiscoveryCache = {
   qualifying: QualifyingPool[];
   meta: Pick<DiscoveryMeta, "rwaTokenCount" | "registryError" | "classificationWarnings" | "dexPagesHitSafetyCap">;
+  errors: string[];
   discoveredAt: number;
 };
 
-const DISCOVERY_TTL_MS = 30 * 60 * 1000; // pools are created rarely
-const METRICS_TTL_MS = 90 * 1000; // fast tier: safe to redo often, but avoid refetching on every slider tweak
+// Discovery also carries TVL/volume, so this is effectively the data freshness.
+// ~10 Codex calls per pass; 5 minutes keeps normal use well inside the free
+// tier's 10k requests/month.
+const DISCOVERY_TTL_MS = 5 * 60 * 1000;
+const METRICS_TTL_MS = 90 * 1000; // tick-state reads; avoid refetching on every slider tweak
+
+const MIN_LIQUIDITY_USD = Number(process.env.CODEX_MIN_LIQUIDITY_USD) || DEFAULT_MIN_LIQUIDITY_USD;
 
 let discoveryCache: DiscoveryCache | null = null;
 let metricsCache: { rows: PoolRow[]; meta: DiscoveryMeta; fetchedAt: number } | null = null;
@@ -104,7 +108,11 @@ function resolveSides(
 }
 
 async function runDiscovery(): Promise<DiscoveryCache> {
-  const discovery = await discoverUniswapPools();
+  const registry = await getRegistryTokens();
+  if (!registry.ok) throw new Error(`Robinhood asset registry unreachable (${registry.error}) — can't search for RWA pools without it.`);
+
+  const discovery = await discoverUniswapPoolsViaCodex([...registry.tokens.keys()], MIN_LIQUIDITY_USD);
+  if (discovery.pools.length === 0 && discovery.errors.length > 0) throw new Error(discovery.errors.join("; "));
   const classification = await classifyTokens(discovery.candidateTokens);
 
   const qualifying: QualifyingPool[] = [];
@@ -125,11 +133,12 @@ async function runDiscovery(): Promise<DiscoveryCache> {
       classificationWarnings,
       dexPagesHitSafetyCap: discovery.hitSafetyCap,
     },
+    errors: discovery.errors,
     discoveredAt: Date.now(),
   };
 }
 
-/** Which pools exist + their RWA/counter classification. Cached ~30min; pass force to rescan now. */
+/** Which pools exist + their RWA/counter classification + TVL/volume. Cached ~5min; pass force to rescan now. */
 export async function getDiscoveredPools(forceRefresh = false): Promise<DiscoveryCache> {
   if (!forceRefresh && discoveryCache && Date.now() - discoveryCache.discoveredAt < DISCOVERY_TTL_MS) {
     return discoveryCache;
@@ -152,7 +161,8 @@ export type FastRefreshResult = { rows: PoolRow[]; meta: DiscoveryMeta };
 
 /** Current TVL/volume/tick-state for already-discovered pools. Cached briefly. */
 export async function getFastPoolData(options: { forceRefresh?: boolean; forceRescan?: boolean } = {}): Promise<FastRefreshResult> {
-  const discovery = await getDiscoveredPools(options.forceRescan ?? false);
+  // Discovery carries the TVL/volume numbers, so a manual refresh re-runs it.
+  const discovery = await getDiscoveredPools(Boolean(options.forceRescan || options.forceRefresh));
 
   if (!options.forceRefresh && !options.forceRescan && metricsCache && Date.now() - metricsCache.fetchedAt < METRICS_TTL_MS) {
     return { rows: metricsCache.rows, meta: metricsCache.meta };
@@ -175,10 +185,7 @@ async function refreshMetrics(discovery: DiscoveryCache): Promise<FastRefreshRes
   const { qualifying } = discovery;
 
   const v4PoolIds = qualifying.filter((q) => q.pool.version === "v4").map((q) => q.pool.address);
-  const [metricsResult, v4Index] = await Promise.all([
-    fetchPoolMetrics(qualifying.map((q) => q.pool.address)),
-    resolveV4PoolKeys(v4PoolIds),
-  ]);
+  const v4Index = await resolveV4PoolKeys(v4PoolIds);
 
   const tickStates = await getTickStates(
     qualifying.map((q) => q.pool),
@@ -188,16 +195,9 @@ async function refreshMetrics(discovery: DiscoveryCache): Promise<FastRefreshRes
   const rows: PoolRow[] = qualifying.map(({ pool, rwa, counter, baseIsRwa }) => {
     const rwaIsToken0 = BigInt(rwa.address) < BigInt(counter.address);
     const tickState = tickStates.get(pool.address) ?? { kind: "unavailable" as const, reason: "not read" };
-    const liveMetrics = metricsResult.metrics.get(pool.address);
 
-    // Map GeckoTerminal's base/quote prices onto rwa/counter using the same
-    // side the token itself came from (recorded in resolveSides).
-    const rwaTokenPriceUsd = liveMetrics
-      ? (baseIsRwa ? liveMetrics.basePriceUsd : liveMetrics.quotePriceUsd)
-      : (baseIsRwa ? pool.basePriceUsd : pool.quotePriceUsd);
-    const counterTokenPriceUsd = liveMetrics
-      ? (baseIsRwa ? liveMetrics.quotePriceUsd : liveMetrics.basePriceUsd)
-      : (baseIsRwa ? pool.quotePriceUsd : pool.basePriceUsd);
+    const rwaTokenPriceUsd = baseIsRwa ? pool.basePriceUsd : pool.quotePriceUsd;
+    const counterTokenPriceUsd = baseIsRwa ? pool.quotePriceUsd : pool.basePriceUsd;
 
     const identity: PoolIdentity = {
       address: pool.address,
@@ -216,11 +216,9 @@ async function refreshMetrics(discovery: DiscoveryCache): Promise<FastRefreshRes
           ? ["none"]
           : [];
 
-    // Prefer the just-fetched live metrics; fall back to the discovery-time
-    // snapshot if this pool's batch call failed, rather than showing nothing.
     const fast: FastMetrics = {
-      reserveInUsdTotal: liveMetrics?.reserveInUsd ?? pool.reserveInUsd,
-      volume24hUsd: liveMetrics?.volume24hUsd ?? pool.volume24hUsd,
+      reserveInUsdTotal: pool.reserveInUsd,
+      volume24hUsd: pool.volume24hUsd,
       rwaTokenPriceUsd,
       counterTokenPriceUsd,
       lastUpdated: new Date().toISOString(),
@@ -231,7 +229,6 @@ async function refreshMetrics(discovery: DiscoveryCache): Promise<FastRefreshRes
     if (identity.version === "v4" && tickState.kind === "concentrated" && tickState.tickSpacing === null) {
       warnings.push("tickSpacing unknown — v4 Initialize event not found in index yet, range math unavailable.");
     }
-    if (!liveMetrics) warnings.push("Live TVL/volume refresh failed for this pool; showing last known values.");
 
     return { identity, tickState, hookBadges, fast, slow: null, warnings };
   });
@@ -239,7 +236,7 @@ async function refreshMetrics(discovery: DiscoveryCache): Promise<FastRefreshRes
   const meta: DiscoveryMeta = {
     discoveredAt: new Date(discovery.discoveredAt).toISOString(),
     poolCount: rows.length,
-    fetchErrors: metricsResult.errors,
+    fetchErrors: discovery.errors,
     ...discovery.meta,
   };
 

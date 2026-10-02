@@ -3,7 +3,7 @@
 // refresh; live tick state is then multicalled over RPC for those pools.
 import { USDG, WETH } from "../chain/addresses";
 import { decodeHookPermissions, type HookBadge } from "../chain/hooks";
-import { DEFAULT_MIN_LIQUIDITY_USD, discoverUniswapPoolsViaCodex } from "../codex/discovery";
+import { DEFAULT_MIN_LIQUIDITY_USD, DEFAULT_MIN_VOLUME_1H_USD, discoverUniswapPoolsViaCodex } from "../codex/discovery";
 import type { DiscoveredPool } from "../gecko/discovery";
 import { classifyTokens, type ClassifiedToken } from "../rwa/classify";
 import { getRegistryTokens } from "../rwa/registry";
@@ -27,6 +27,8 @@ const DISCOVERY_TTL_MS = 5 * 60 * 1000;
 const METRICS_TTL_MS = 90 * 1000; // tick-state reads; avoid refetching on every slider tweak
 
 const MIN_LIQUIDITY_USD = Number(process.env.CODEX_MIN_LIQUIDITY_USD) || DEFAULT_MIN_LIQUIDITY_USD;
+// `??` rather than `||` so CODEX_MIN_VOLUME_1H_USD=0 can switch the filter off.
+const MIN_VOLUME_1H_USD = process.env.CODEX_MIN_VOLUME_1H_USD ? Number(process.env.CODEX_MIN_VOLUME_1H_USD) : DEFAULT_MIN_VOLUME_1H_USD;
 
 let discoveryCache: DiscoveryCache | null = null;
 let metricsCache: { rows: PoolRow[]; meta: DiscoveryMeta; fetchedAt: number } | null = null;
@@ -111,7 +113,7 @@ async function runDiscovery(): Promise<DiscoveryCache> {
   const registry = await getRegistryTokens();
   if (!registry.ok) throw new Error(`Robinhood asset registry unreachable (${registry.error}) — can't search for RWA pools without it.`);
 
-  const discovery = await discoverUniswapPoolsViaCodex([...registry.tokens.keys()], MIN_LIQUIDITY_USD);
+  const discovery = await discoverUniswapPoolsViaCodex([...registry.tokens.keys()], MIN_LIQUIDITY_USD, MIN_VOLUME_1H_USD);
   if (discovery.pools.length === 0 && discovery.errors.length > 0) throw new Error(discovery.errors.join("; "));
   const classification = await classifyTokens(discovery.candidateTokens);
 

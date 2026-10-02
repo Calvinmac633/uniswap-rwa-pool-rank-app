@@ -15,6 +15,8 @@ const MAX_PAGES = 50; // safety stop, far above what a sane liquidity floor need
 const PRICE_BATCH_SIZE = 25; // getTokenPrices silently truncates beyond 25 inputs
 
 export const DEFAULT_MIN_LIQUIDITY_USD = 10_000;
+// Only pools trading right now: no swaps in the last hour means no fees being earned.
+export const DEFAULT_MIN_VOLUME_1H_USD = 1;
 
 // Codex reports the factory (v2/v3) or PoolManager (v4) as `exchange.address`.
 const VERSION_BY_EXCHANGE: Record<string, UniswapVersion> = {
@@ -31,9 +33,9 @@ type FilterPairsResult = {
 };
 
 const FILTER_PAIRS_QUERY = `
-  query Discover($tokens: [String], $exchanges: [String], $minLiquidity: Float, $offset: Int) {
+  query Discover($tokens: [String], $exchanges: [String], $minLiquidity: Float, $minVolume1h: Float, $offset: Int) {
     filterPairs(
-      filters: { network: [${ROBINHOOD_CHAIN_ID}], exchangeAddress: $exchanges, tokenAddress: $tokens, liquidity: { gte: $minLiquidity } }
+      filters: { network: [${ROBINHOOD_CHAIN_ID}], exchangeAddress: $exchanges, tokenAddress: $tokens, liquidity: { gte: $minLiquidity }, volumeUSD1: { gte: $minVolume1h } }
       limit: ${PAGE_SIZE}
       offset: $offset
     ) {
@@ -74,11 +76,13 @@ async function fetchTokenPrices(addresses: string[], errors: string[]): Promise<
 
 /**
  * Every Uniswap v2/v3/v4 pool on Robinhood Chain involving any of `rwaTokenAddresses`
- * with at least `minLiquidityUsd` of liquidity. Base/quote are token0/token1.
+ * with at least `minLiquidityUsd` of liquidity and `minVolume1hUsd` traded in the
+ * last hour. Base/quote are token0/token1.
  */
 export async function discoverUniswapPoolsViaCodex(
   rwaTokenAddresses: string[],
-  minLiquidityUsd: number = DEFAULT_MIN_LIQUIDITY_USD
+  minLiquidityUsd: number = DEFAULT_MIN_LIQUIDITY_USD,
+  minVolume1hUsd: number = DEFAULT_MIN_VOLUME_1H_USD
 ): Promise<DiscoveryScanResult> {
   const errors: string[] = [];
   const hitSafetyCap: string[] = [];
@@ -95,6 +99,7 @@ export async function discoverUniswapPoolsViaCodex(
       tokens,
       exchanges: Object.keys(VERSION_BY_EXCHANGE),
       minLiquidity: minLiquidityUsd,
+      minVolume1h: minVolume1hUsd,
       offset: page * PAGE_SIZE,
     });
     if (!result.ok) {
